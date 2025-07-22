@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   MapPin,
   Phone,
@@ -7,6 +7,8 @@ import {
   Filter,
   X,
   ChevronDown,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react";
 import donorsData from "../data/donors.json";
 import { divisions, donorTypes } from "../data/locations";
@@ -18,6 +20,23 @@ const DonorList = () => {
   const [filterDivision, setFilterDivision] = useState("");
   const [filterType, setFilterType] = useState("");
   const [showMobileFilters, setShowMobileFilters] = useState(false);
+  // Pagination settings
+  const [currentPage, setCurrentPage] = useState(1);
+  const donorsPerPage = 30;
+
+  // Calculate pagination values
+  const indexOfLastDonor = currentPage * donorsPerPage;
+  const indexOfFirstDonor = indexOfLastDonor - donorsPerPage;
+  const currentDonors = filteredDonors.slice(
+    indexOfFirstDonor,
+    indexOfLastDonor
+  );
+  const totalPages = Math.ceil(filteredDonors.length / donorsPerPage);
+
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterDivision, filterType, sortBy]);
 
   const handleSort = (criteria) => {
     setSortBy(criteria);
@@ -40,6 +59,7 @@ const DonorList = () => {
     }
 
     setFilteredDonors(sorted);
+    setCurrentPage(1); // Reset to first page
   };
 
   const handleFilter = (division, type) => {
@@ -56,6 +76,7 @@ const DonorList = () => {
     setFilteredDonors(filtered);
     setFilterDivision(division);
     setFilterType(type);
+    setCurrentPage(1); // Reset to first page
   };
 
   const clearFilters = () => {
@@ -63,6 +84,7 @@ const DonorList = () => {
     setFilterDivision("");
     setFilterType("");
     setShowMobileFilters(false);
+    setCurrentPage(1); // Reset to first page
   };
 
   const getDonorTypeLabel = (type) => {
@@ -77,6 +99,12 @@ const DonorList = () => {
   const activeFiltersCount = [filterDivision, filterType].filter(
     Boolean
   ).length;
+
+  const handlePageChange = (pageNumber) => {
+    setCurrentPage(pageNumber);
+    // Scroll to top smoothly
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
 
   return (
     <div className="min-h-screen bg-gray-100 py-4 sm:py-8">
@@ -294,7 +322,7 @@ const DonorList = () => {
 
           {/* Donor List */}
           <div className="divide-y divide-gray-200">
-            {filteredDonors.map((donor) => (
+            {currentDonors.map((donor) => (
               <div
                 key={donor.id}
                 className="p-4 sm:p-6 hover:bg-gray-50 transition-colors"
@@ -458,17 +486,94 @@ const DonorList = () => {
           </div>
         </div>
 
-        {filteredDonors.length === 0 && (
-          <div className="text-center py-12 sm:py-16">
-            <div className="text-gray-400 mb-4">
-              <Filter className="h-12 sm:h-16 w-12 sm:w-16 mx-auto" />
+        {/* Pagination */}
+        {filteredDonors.length > donorsPerPage && (
+          <div className="px-4 py-6 border-t border-gray-200">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
+              <div className="flex items-center">
+                <p className="text-sm text-gray-700">
+                  Showing{" "}
+                  <span className="font-medium">{indexOfFirstDonor + 1}</span>{" "}
+                  to{" "}
+                  <span className="font-medium">
+                    {Math.min(indexOfLastDonor, filteredDonors.length)}
+                  </span>{" "}
+                  of{" "}
+                  <span className="font-medium">{filteredDonors.length}</span>{" "}
+                  donors
+                </p>
+              </div>
+              <div className="flex items-center space-x-2">
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className={`p-2 rounded-lg ${
+                    currentPage === 1
+                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : "bg-white text-gray-700 hover:bg-gray-50"
+                  } border border-gray-300`}
+                  aria-label="Previous page"
+                >
+                  <ChevronLeft className="h-5 w-5" />
+                </button>
+
+                <div className="hidden sm:flex space-x-2">
+                  {[...Array(totalPages)].map((_, index) => {
+                    const pageNumber = index + 1;
+                    // Show limited page numbers for better UI
+                    if (
+                      pageNumber === 1 ||
+                      pageNumber === totalPages ||
+                      (pageNumber >= currentPage - 1 &&
+                        pageNumber <= currentPage + 1)
+                    ) {
+                      return (
+                        <button
+                          key={pageNumber}
+                          onClick={() => handlePageChange(pageNumber)}
+                          className={`px-4 py-2 rounded-lg ${
+                            currentPage === pageNumber
+                              ? "bg-primary-600 text-white"
+                              : "bg-white text-gray-700 hover:bg-gray-50"
+                          } border border-gray-300`}
+                        >
+                          {pageNumber}
+                        </button>
+                      );
+                    } else if (
+                      pageNumber === currentPage - 2 ||
+                      pageNumber === currentPage + 2
+                    ) {
+                      return (
+                        <span key={pageNumber} className="px-2 text-gray-500">
+                          ...
+                        </span>
+                      );
+                    }
+                    return null;
+                  })}
+                </div>
+
+                <div className="sm:hidden">
+                  <span className="text-sm text-gray-700">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                </div>
+
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className={`p-2 rounded-lg ${
+                    currentPage === totalPages
+                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : "bg-white text-gray-700 hover:bg-gray-50"
+                  } border border-gray-300`}
+                  aria-label="Next page"
+                >
+                  <ChevronRight className="h-5 w-5" />
+                </button>
+              </div>
             </div>
-            <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-2">
-              No donors found
-            </h3>
-            <p className="text-gray-600 px-4">
-              Try adjusting your filters to see more results.
-            </p>
           </div>
         )}
       </div>
