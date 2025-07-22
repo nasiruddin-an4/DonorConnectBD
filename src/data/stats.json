@@ -1,0 +1,8 @@
+{
+  "stats": [
+    { "number": 1000, "label": "Registered Donors" },
+    { "number": 8, "label": "Divisions Covered" },
+    { "number": 64, "label": "Districts Served" },
+    { "number": 24, "label": "Platform Available", "suffix": "/7" }
+  ]
+}
